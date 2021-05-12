@@ -52,20 +52,8 @@ namespace BetterFlashing
             plugin.SendDebug($"Flash grenade exploded at {grenadePosition}.");
             foreach (Player player in Player.List)
             {
-                if (player == thrower || player.SessionVariables.ContainsKey("IsNPC"))
+                if (!IsFlashable(player, thrower, flashGrenade))
                     continue;
-
-                if (thrower.Side == player.Side && !flashGrenade._friendlyFlash)
-                {
-                    plugin.SendDebug($"{thrower.Nickname} cannot flash {player.Nickname} due to friendly fire prevention.");
-                    continue;
-                }
-
-                if (!Physics.Linecast(grenadePosition, player.CameraTransform.position, flashGrenade._ignoredLayers))
-                {
-                    plugin.SendDebug($"Detected a surface with collision between the grenade and {player.Nickname}, skipping.");
-                    continue;
-                }
 
                 bool isSurface = player.CurrentRoom.Type == RoomType.Surface;
                 float maxDistance = isSurface ? plugin.Config.MaximumSurfaceDistance : plugin.Config.MaximumFacilityDistance;
@@ -115,6 +103,29 @@ namespace BetterFlashing
                 player.ChangeEffectIntensity<Flashed>(clampedIntensity);
                 player.EnableEffect(EffectType.Deafened, flashIntensity * plugin.Config.MaximumFlashDuration, true);
             }
+        }
+
+        private bool IsFlashable(Player target, Player thrower, FlashGrenade flashGrenade)
+        {
+            if (target == thrower)
+                return false;
+
+            if (target.SessionVariables.ContainsKey("IsNPC"))
+                return false;
+
+            if (!thrower.ReferenceHub.weaponManager.GetShootPermission(target.Team))
+            {
+                plugin.SendDebug($"Shoot permission by {target.Nickname}'s weapon manager was denied, skipping.");
+                return false;
+            }
+
+            if (Physics.Linecast(flashGrenade.transform.position, target.CameraTransform.position, flashGrenade._ignoredLayers))
+            {
+                plugin.SendDebug($"Detected a surface with collision between the grenade and {target.Nickname}, skipping.");
+                return false;
+            }
+
+            return true;
         }
     }
 }
