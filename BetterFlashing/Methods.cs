@@ -49,15 +49,17 @@ namespace BetterFlashing
         public void RunFlash(FlashGrenade flashGrenade, Player thrower)
         {
             Vector3 grenadePosition = flashGrenade.transform.position;
-            plugin.SendDebug($"Flash grenade exploded at {grenadePosition}.");
+
+            bool isSurface = grenadePosition.y > 900;
+            plugin.SendDebug($"Flash grenade exploded at {grenadePosition}, which {(isSurface ? "is on surface" : "is not on surface")}.");
+
+            float maxDistance = isSurface ? plugin.Config.MaximumSurfaceDistance : plugin.Config.MaximumFacilityDistance;
+            plugin.SendDebug($"Calculated maximum flash distance: {maxDistance}");
+
             foreach (Player player in Player.List)
             {
                 if (!IsFlashable(player, thrower, flashGrenade))
                     continue;
-
-                bool isSurface = player.CurrentRoom.Type == RoomType.Surface;
-                float maxDistance = isSurface ? plugin.Config.MaximumSurfaceDistance : plugin.Config.MaximumFacilityDistance;
-                plugin.SendDebug($"Calculated maximum flash distance for {player.Nickname}: {maxDistance}");
 
                 float distance = Vector3.Distance(player.Position, grenadePosition);
                 plugin.SendDebug($"{player.Nickname} is standing {distance} HU away from the flash grenade.");
